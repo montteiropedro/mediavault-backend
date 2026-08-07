@@ -11,6 +11,11 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       post "library/scan", to: "library#scan"
+
+      resources :media_items, only: [:index] do
+        get :stream, on: :member
+        resources :media_progresses, only: [:create]
+      end
     end
   end
 end
