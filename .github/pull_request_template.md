@@ -1,19 +1,19 @@
-## Resumo
+## Summary
 
-<!-- Descreva brevemente o que mudou. -->
+<!-- Briefly describe what changed -->
 
-## Alterações
+## Changes
 
-<!-- Liste, em bullet points, as alterações realizadas. -->
+<!-- List the changes made -->
 
-## Motivação
+## Motivation
 
-<!-- Explique por que essa mudança foi necessária. -->
+<!-- Explain why this change was necessary -->
 
-## Como validar
+## How to Validate
 
 - [ ]
 
-## Observações
+## Notes
 
-<!-- Informações adicionais, limitações ou próximos passos. -->
+<!-- Additional information, limitations, or next steps -->
