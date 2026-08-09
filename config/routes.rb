@@ -13,6 +13,7 @@ Rails.application.routes.draw do
       post "library/scan", to: "library#scan"
 
       resources :media_items, only: [:index] do
+        get "subtitles/:index", action: :subtitles
         get :stream, on: :member
         resources :media_progresses, only: [:create]
       end

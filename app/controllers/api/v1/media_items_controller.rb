@@ -1,5 +1,5 @@
 class Api::V1::MediaItemsController < ApplicationController
-  before_action :set_media_item, only: [:stream]
+  before_action :set_media_item, only: [:stream, :subtitles]
 
   def index
     @media_items = MediaItem.all.with_attached_cover_art
@@ -50,6 +50,27 @@ class Api::V1::MediaItemsController < ApplicationController
     end
   end
 
+  def subtitles
+    cache = MediaSubtitleCache.new(@media_item)
+    cache.prepare!
+
+    track_index = params[:index].to_i # e.g., 0 to 0:s:0
+    cached_track_path = cache.path(track_index)
+
+    unless cache.exist?(track_index)
+      _stdout, stderr, status = MediaGenerateSubtitleService.call(@media_item, track_index, cached_track_path)
+
+      unless status.success?
+        error = RuntimeError.new(stderr.presence || "Error extracting subtitles (Exit code: #{status.exitstatus})")
+        ApplicationLogger.error(error, location: "Api::V1::MediaItemsController")
+        return head :not_found
+      end
+    end
+
+    # Sends the generated .vtt file with the correct HTTP header required by HTML5.
+    send_file(cached_track_path, type: 'text/vtt', disposition: 'inline')
+  end
+
   private
 
   def media_item_params
@@ -57,7 +78,7 @@ class Api::V1::MediaItemsController < ApplicationController
   end
 
   def set_media_item
-    @media_item = MediaItem.find(params[:id])
+    @media_item = MediaItem.find(params[:id] || params[:media_item_id])
   end
 
   def media_item_json(item)
@@ -67,6 +88,7 @@ class Api::V1::MediaItemsController < ApplicationController
     ).merge(
       cover_art_url: item.cover_art.attached? ? url_for(item.cover_art) : nil,
       video_url: stream_api_v1_media_item_url(item, host: "http://localhost:#{ENV['PORT']}"),
+      subtitles: MediaMetadataService.call(item.file_path),
       user_progress_seconds: item.user_progress(User.first)
     )
   end
