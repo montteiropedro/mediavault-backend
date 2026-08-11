@@ -16,35 +16,48 @@ RSpec.describe MediaMetadataService do
       let(:stdout) do
         {
           streams: [
-            { index: 2, tags: { language: "por", title: "Portuguese (Brazil)" } },
-            { index: 3, tags: { language: "eng" } },
-            { index: 4, tags: {} }
+            { codec_type: "audio", tags: { language: "por", title: "Portuguese (Brazil)" } },
+            { codec_type: "audio", tags: { language: "eng" } },
+            { codec_type: "subtitle", tags: { language: "por", title: "Portuguese (Brazil)" } },
+            { codec_type: "subtitle", tags: { language: "eng" } },
+            { codec_type: "subtitle", tags: {} }
           ]
         }.to_json
       end
 
-      it "correctly maps and formats the subtitles tracks found" do
+      it "correctly filters, maps and formats audio and subtitle streams" do
         result = described_class.call(file_path)
 
-        expect(result).to eq([
-          { id: 0, stream_index: 2, language: "por", label: "Portuguese (Brazil)" },
-          { id: 1, stream_index: 3, language: "eng", label: "eng" },
-          { id: 2, stream_index: 4, language: "und", label: "Subtitle 3" }
-        ])
+        expect(result).to eq(
+          described_class::Result.new(
+            audios: [
+              described_class::Stream.new(id: 0, language: "por", label: "Portuguese (Brazil)"),
+              described_class::Stream.new(id: 1, language: "eng", label: "eng")
+            ],
+            subtitles: [
+              described_class::Stream.new(id: 0, language: "por", label: "Portuguese (Brazil)"),
+              described_class::Stream.new(id: 1, language: "eng", label: "eng"),
+              described_class::Stream.new(id: 2, language: "und", label: "subtitle 3")
+            ]
+          )
+        )
       end
     end
 
-    context "when the metadata fails" do
+    context "when the metadata fetch fails" do
       let(:success) { false }
       let(:exitstatus) { 1 }
       let(:stdout) { "{}" }
-      let(:stderr) { "error opening file" }
+      let(:stderr) { "stderr" }
 
       it "logs the error in ApplicationLogger and returns an empty array" do
-        expect(ApplicationLogger).to receive(:error)
+        expect(ApplicationLogger)
+          .to receive(:error)
+          .with(an_instance_of(RuntimeError), location: described_class.to_s)
 
         result = described_class.call(file_path)
-        expect(result).to eq([])
+
+        expect(result).to eq(described_class::Result.new(audios: [], subtitles: []))
       end
     end
   end
