@@ -1,5 +1,5 @@
 class Api::V1::MediaItemsController < ApplicationController
-  before_action :set_media_item, only: [:stream, :subtitles]
+  before_action :set_media_item, only: [:stream, :stream_audio, :subtitles]
 
   def index
     media_items = MediaItem.all.with_attached_cover_art
@@ -50,6 +50,25 @@ class Api::V1::MediaItemsController < ApplicationController
     end
   end
 
+  def stream_audio
+    cache = MediaAudioCache.new(@media_item)
+    cache.prepare!
+    track_index = params[:index].to_i
+    cached_track_path = cache.path(track_index)
+
+    unless cache.exist?(track_index)
+      result = MediaGenerateAudioService.call(@media_item, track_index, cached_track_path)
+
+      unless result.success
+        error = RuntimeError.new(result.stderr.presence || "Error extracting audio (Exit code: #{status.exitstatus})")
+        ApplicationLogger.error(error, location: "Api::V1::MediaItemsController")
+        return head :not_found
+      end
+    end
+
+    send_file_with_range_support(cached_track_path, "audio/mp4")
+  end
+
   def subtitles
     cache = MediaSubtitleCache.new(@media_item)
     cache.prepare!
@@ -94,5 +113,34 @@ class Api::V1::MediaItemsController < ApplicationController
       subtitles: metadata.subtitles,
       user_progress_seconds: item.user_progress(User.first)
     )
+  end
+
+  def send_file_with_range_support(file_path, mime_type)
+    file_size = File.size(file_path)
+    range_header = request.headers["Range"]
+
+    unless range_header
+      response.headers["Accept-Ranges"] = "bytes"
+      return send_file(file_path, type: mime_type, disposition: "inline")
+    end
+
+    # Extracts the requested start and end bytes (e.g., "bytes=100-200")
+    bytes = range_header.sub(/bytes=/, "").split("-")
+    start_byte = bytes[0].to_i
+    end_byte = bytes[1].presence ? bytes[1].to_i : [start_byte + 2_000_000 - 1, file_size - 1].min # Chunks of ~2MB
+    length = end_byte - start_byte + 1
+
+    # Defines the HTTP 206 Partial Content response headers.
+    response.headers["Content-Range"] = "bytes #{start_byte}-#{end_byte}/#{file_size}"
+    response.headers["Accept-Ranges"] = "bytes"
+    response.headers["Content-Length"] = length.to_s
+    response.headers["Content-Type"] = mime_type
+
+    # Reads only the requested portion of the file.
+    File.open(file_path, "rb") do |file|
+      file.seek(start_byte)
+      chunk = file.read(length)
+      send_data chunk, type: mime_type, disposition: "inline", status: 206
+    end
   end
 end

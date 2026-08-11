@@ -14,6 +14,7 @@ Rails.application.routes.draw do
 
       resources :media_items, only: [:index] do
         get "subtitles/:index", action: :subtitles
+        get "stream_audio/:index", action: :stream_audio
         get :stream, on: :member
         resources :media_progresses, only: [:create]
       end
