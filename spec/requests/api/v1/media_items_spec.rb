@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Api::V1::MediaItems", type: :request do
-  describe "GET /api/v1/media_items/:media_item_id/subtitles/:index" do
+  describe "GET /api/v1/media_items/:media_item_id/subtitle/:index" do
     let(:media_item) { MediaItem.create!(title: "Test Movie", file_path: "/path/to/movie.mkv") }
     let(:track_index) { 999 }
     let(:cache) { instance_double(MediaSubtitleCache) }
@@ -42,7 +42,7 @@ RSpec.describe "Api::V1::MediaItems", type: :request do
       end
 
       it "extracts and returns the subtitle" do
-        get "/api/v1/media_items/#{media_item.id}/subtitles/#{track_index}"
+        get "/api/v1/media_items/#{media_item.id}/subtitle/#{track_index}"
 
         expect(response).to have_http_status(:ok)
         expect(response.content_type).to include("text/vtt")
@@ -60,7 +60,7 @@ RSpec.describe "Api::V1::MediaItems", type: :request do
       end
 
       it "returns the cached subtitle" do
-        get "/api/v1/media_items/#{media_item.id}/subtitles/#{track_index}"
+        get "/api/v1/media_items/#{media_item.id}/subtitle/#{track_index}"
 
         expect(response).to have_http_status(:ok)
         expect(response.content_type).to include("text/vtt")
@@ -87,7 +87,7 @@ RSpec.describe "Api::V1::MediaItems", type: :request do
       end
 
       it "returns 404 Not Found" do
-        get "/api/v1/media_items/#{media_item.id}/subtitles/#{track_index}"
+        get "/api/v1/media_items/#{media_item.id}/subtitle/#{track_index}"
 
         expect(response).to have_http_status(:not_found)
       end
