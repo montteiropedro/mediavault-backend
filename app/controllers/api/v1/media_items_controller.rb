@@ -2,9 +2,9 @@ class Api::V1::MediaItemsController < ApplicationController
   before_action :set_media_item, only: [:stream, :subtitles]
 
   def index
-    @media_items = MediaItem.all.with_attached_cover_art
+    media_items = MediaItem.all.with_attached_cover_art
 
-    render json: @media_items.map { |item| media_item_json(item) }
+    render json: media_items.map { |item| media_item_json(item) }
   end
 
   def stream
@@ -82,13 +82,16 @@ class Api::V1::MediaItemsController < ApplicationController
   end
 
   def media_item_json(item)
+    metadata = MediaMetadataService.call(item.file_path)
+
     item.as_json(
       include: { category: { only: [:id, :name] } },
       exclude: [:created_at, :updated_at],
     ).merge(
       cover_art_url: item.cover_art.attached? ? url_for(item.cover_art) : nil,
       video_url: stream_api_v1_media_item_url(item, host: "http://localhost:#{ENV['PORT']}"),
-      subtitles: MediaMetadataService.call(item.file_path),
+      audios: metadata.audios,
+      subtitles: metadata.subtitles,
       user_progress_seconds: item.user_progress(User.first)
     )
   end
