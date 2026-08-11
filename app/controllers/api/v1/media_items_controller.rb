@@ -42,7 +42,7 @@ class Api::V1::MediaItemsController < ApplicationController
     cache = MediaSubtitleCache.new(@media_item)
     cache.prepare!
 
-    track_index = params[:index].to_i # e.g., 0 to 0:s:0
+    track_index = params[:index].to_i
     cached_track_path = cache.path(track_index)
 
     unless cache.exist?(track_index)
