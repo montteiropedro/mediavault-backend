@@ -1,4 +1,7 @@
 class MediaMetadataService
+  Stream = Data.define(:id, :language, :label)
+  Result = Data.define(:audios, :subtitles)
+
   def self.call(file_path)
     new(file_path).call
   end
@@ -20,29 +23,31 @@ class MediaMetadataService
       "-v", "quiet",
       "-print_format", "json",
       "-show_streams",
-      "-select_streams", "s",
       @file_path.to_s
     )
 
     unless status.success?
       error = RuntimeError.new(stderr.presence || "Error fetching metadata (Exit code: #{status.exitstatus})")
       ApplicationLogger.error(error, location: "MediaMetadataService")
-      return []
+      return Result.new(audios: [], subtitles: [])
     end
 
     streams = JSON.parse(stdout)["streams"] || []
-    format_streams(streams)
+    audios = streams.select { |stream| stream["codec_type"] == 'audio' };
+    subtitles = streams.select { |stream| stream["codec_type"] == 'subtitle' };
+
+    Result.new(audios: format_streams(audios), subtitles: format_streams(subtitles))
   end
 
   def format_streams(streams)
     streams.map.with_index do |stream, relative_index|
       tags = stream["tags"] || {}
-      {
+
+      Stream.new(
         id: relative_index,
-        stream_index: stream["index"],
         language: tags["language"] || "und",
-        label: tags["title"] || tags["language"] || "Subtitle #{relative_index + 1}"
-      }
+        label: tags["title"] || tags["language"] || "#{stream['codec_type']} #{relative_index + 1}"
+      )
     end
   end
 end
