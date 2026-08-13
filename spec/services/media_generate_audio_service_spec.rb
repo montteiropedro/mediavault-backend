@@ -15,7 +15,7 @@ RSpec.describe MediaGenerateAudioService do
         "-v", "error",
         "-print_format", "csv=p=0",
         "-select_streams", "a:1",
-        "-show_entries", "stream=codec_name",
+        "-show_entries", "stream=codec_name,channels,channel_layout",
         "/path/to/movie.mp4"
       ]
     end
@@ -59,6 +59,8 @@ RSpec.describe MediaGenerateAudioService do
           "-map", "0:a:1",
           "-c:a", "aac",
           "-b:a", "192k",
+          "-ac", "1",
+          "-channel_layout", "mono",
           "-f", "mp4",
           "/tmp/audios/audio_track_1.m4a"
         ).and_return(["", "", ffmpeg_status])
@@ -87,6 +89,8 @@ RSpec.describe MediaGenerateAudioService do
           "-map", "0:a:1",
           "-c:a", "aac",
           "-b:a", "192k",
+          "-ac", "1",
+          "-channel_layout", "mono",
           "-f", "mp4",
           "/tmp/audios/audio_track_1.m4a"
         ).and_return(["", "", ffmpeg_status])
