@@ -1,3 +1,10 @@
+x-app-env: &app-env
+  REDIS_URL: redis://redis:${REDIS_PORT:-6379}/0
+  POSTGRES_USER: ${POSTGRES_USER:-postgres}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  POSTGRES_DB: ${POSTGRES_DB:-mediavault_backend_development}
+  DB_HOST: ${DB_HOST:-db}
+
 services:
   app:
     container_name: mediavault-backend
@@ -13,11 +20,7 @@ services:
     env_file:
       - .env
     environment:
-      REDIS_URL: redis://redis:6379/1
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-mediavault_backend_development}
-      DB_HOST: ${DB_HOST:-db}
+      <<: *app-env
     depends_on:
       db:
         condition: service_healthy
@@ -40,6 +43,20 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  sidekiq:
+    container_name: mediavault-backend-sidekiq
+    build:
+      context: .
+      dockerfile: Dockerfile.development
+    command: bundle exec sidekiq
+    volumes:
+      - .:/app
+      - ${DEFAULT_MEDIA_PATH:?please set its value in the .env file}:/media/library:ro
+    environment:
+      <<: *app-env
+    depends_on:
+      - redis
 
   redis:
     container_name: mediavault-backend-redis
