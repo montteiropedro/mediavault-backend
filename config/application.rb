@@ -29,6 +29,13 @@ module App
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
+    config.active_job.queue_adapter = :sidekiq
+
+    # Adds the necessary middleware for engines that use sessions.
+    config.session_store :cookie_store, key: "_mediavault_session"
+    config.middleware.use ActionDispatch::Cookies
+    config.middleware.use ActionDispatch::Session::CookieStore, config.session_options
+
     config.generators do |g|
       g.test_framework :rspec
     end
