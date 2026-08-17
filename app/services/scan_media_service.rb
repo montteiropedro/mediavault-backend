@@ -10,10 +10,10 @@ class ScanMediaService
   end
 
   def call
-    puts "Starting media scan in: #{@library_path}..."
+    Rails.logger.info("Starting media scan in: #{@library_path}...")
 
     unless Dir.exist?(@library_path)
-      puts "Directory #{@library_path} does not exist."
+      Rails.logger.info("Directory #{@library_path} does not exist.")
     end
 
     existing_files_on_disk = []
@@ -31,7 +31,7 @@ class ScanMediaService
     # Remove from the database the items whose files have been deleted from the disk
     removed_count = cleanup_missing_records(existing_files_on_disk)
 
-    puts "Scan completed! Processed #{scanned_count} files. Removed #{removed_count} missing records."
+    Rails.logger.info("Scan completed! Processed #{scanned_count} files. Removed #{removed_count} missing records.")
   end
 
   private
@@ -56,10 +56,10 @@ class ScanMediaService
     )
 
     if media_item.save
-      puts "Indexed new media: #{clean_title}"
+      Rails.logger.info("Indexed new media: #{clean_title}")
       MediaMetadataProcessingJob.perform_later(media_item.id)
     else
-      puts "Failed to index #{file_path}: #{media_item.errors.full_messages.join(', ')}"
+      Rails.logger.info("Failed to index #{file_path}: #{media_item.errors.full_messages.join(', ')}")
     end
   end
 
@@ -70,7 +70,7 @@ class ScanMediaService
 
     if removed_count.positive?
       missing_items.find_each do |item|
-        puts "Removing missing media from database: #{item.title} (#{item.file_path})"
+        Rails.logger.info("Removing missing media from database: #{item.title} (#{item.file_path})")
       end
       # destroy_all triggers dependencies and callbacks (e.g., cleans up attachments in Active Storage).
       missing_items.destroy_all
