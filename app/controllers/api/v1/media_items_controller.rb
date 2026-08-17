@@ -78,8 +78,8 @@ class Api::V1::MediaItemsController < ApplicationController
     ).merge(
       cover_art_url: item.cover_art.attached? ? url_for(item.cover_art) : nil,
       video_url: stream_video_api_v1_media_item_url(item),
-      audios: metadata.audios,
-      subtitles: metadata.subtitles,
+      audios: item.audio_tracks,
+      subtitles: item.subtitle_tracks,
       user_progress_seconds: item.user_progress(User.first)
     )
   end
