@@ -1,7 +1,7 @@
 class ScanMediaService
   SUPPORTED_EXTENSIONS = %w[.mp4 .mkv .avi .mov .mp3 .flac].freeze
 
-  def self.call(library_path  = "/media/library")
+  def self.call(library_path = "/media/library")
     new(library_path).call
   end
 
@@ -14,7 +14,6 @@ class ScanMediaService
 
     unless Dir.exist?(@library_path)
       puts "Directory #{@library_path} does not exist."
-      return { scanned: 0, removed: 0 }
     end
 
     existing_files_on_disk = []
@@ -33,8 +32,6 @@ class ScanMediaService
     removed_count = cleanup_missing_records(existing_files_on_disk)
 
     puts "Scan completed! Processed #{scanned_count} files. Removed #{removed_count} missing records."
-
-    { scanned: scanned_count, removed: removed_count }
   end
 
   private
@@ -50,20 +47,19 @@ class ScanMediaService
 
     # Create or update the MediaItem based on file_path
     media_item = MediaItem.find_or_initialize_by(file_path: file_path)
+    return unless media_item.new_record?
 
-    if media_item.new_record?
-      media_item.assign_attributes(
-        title: clean_title,
-        media_type: video_or_audio(file_path),
-        description: "Auto-indexed from local storage.",
-        duration: media_duration(file_path)
-      )
+    media_item.assign_attributes(
+      title: clean_title,
+      media_type: video_or_audio(file_path),
+      description: "Auto-indexed from local storage."
+    )
 
-      if media_item.save
-        puts "Indexed new media: #{clean_title}"
-      else
-        puts "Failed to index #{file_path}: #{media_item.errors.full_messages.join(', ')}"
-      end
+    if media_item.save
+      puts "Indexed new media: #{clean_title}"
+      MediaMetadataProcessingJob.perform_later(media_item.id)
+    else
+      puts "Failed to index #{file_path}: #{media_item.errors.full_messages.join(', ')}"
     end
   end
 
@@ -86,22 +82,5 @@ class ScanMediaService
   def video_or_audio(file_path)
     ext = File.extname(file_path).downcase
     %w[.mp3 .flac].include?(ext) ? :audio : :video
-  end
-
-  def media_duration(file_path)
-    stdout, stderr, status = Open3.capture3(
-      "ffprobe",
-      "-v", "error",
-      "-show_entries", "format=duration",
-      "-of", "default=noprint_wrappers=1:nokey=1",
-      file_path
-    )
-
-    unless status.success?
-      Rails.logger.error("ffprobe failed for #{file_path}: #{stderr}")
-      return nil
-    end
-
-    stdout.to_f.round
   end
 end
