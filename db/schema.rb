@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_23_004551) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_16_212343) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -68,13 +68,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_23_004551) do
   end
 
   create_table "media_items", force: :cascade do |t|
+    t.jsonb "audio_tracks", default: [], null: false
     t.bigint "category_id"
     t.datetime "created_at", null: false
     t.text "description"
     t.integer "duration"
     t.string "file_path", null: false
     t.integer "media_type"
-    t.jsonb "metadata"
+    t.jsonb "subtitle_tracks", default: [], null: false
     t.string "title"
     t.datetime "updated_at", null: false
     t.index ["category_id"], name: "index_media_items_on_category_id"
