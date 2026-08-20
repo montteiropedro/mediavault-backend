@@ -18,6 +18,9 @@ Rails.application.routes.draw do
 
       resources :media_items, only: [:index] do
         member do
+          get "hls/playlist.m3u8", action: :hls_playlist, as: :hls_playlist
+          get "hls/:index.ts", action: :hls_segment, as: :hls_segment
+
           get "subtitle/:index", action: :subtitle
           get "stream_audio/:index", action: :stream_audio
           get :stream_video
