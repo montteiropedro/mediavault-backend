@@ -1,8 +1,8 @@
 require "rails_helper"
 
 RSpec.describe Hls::SegmentCache do
-  let(:media_item) { instance_double("MediaItem", id: 123, duration: 1000) }
-  let(:cache) { described_class.new(media_item, base_dir: @tmp_dir) }
+  let(:playable) { instance_double("Movie", id: 123, duration_seconds: 1000) }
+  let(:cache) { described_class.new(playable, base_dir: @tmp_dir) }
 
   around do |example|
     Dir.mktmpdir do |tmp_dir|
@@ -42,7 +42,7 @@ RSpec.describe Hls::SegmentCache do
 
   describe "#playlist" do
     context "when the video duration is not a multiple of the 6 seconds segment duration (e.g., 15s)" do
-      let(:media_item) { instance_double("MediaItem", id: 123, duration: 15) }
+      let(:playable) { instance_double("Movie", id: 123, duration_seconds: 15) }
 
       it "calculates 3 segments and generates the correct HLS m3u8 playlist" do
         expected_playlist = <<~M3U8.strip
@@ -64,7 +64,7 @@ RSpec.describe Hls::SegmentCache do
     end
 
     context "when the duration is exactly a multiple of the 6 seconds segment duration (e.g., 12s)" do
-      let(:media_item) { instance_double("MediaItem", id: 123, duration: 12) }
+      let(:playable) { instance_double("Movie", id: 123, duration_seconds: 12) }
 
       it "calculates exactly 2 segments" do
         expected_playlist = <<~M3U8.strip
@@ -84,7 +84,7 @@ RSpec.describe Hls::SegmentCache do
     end
 
     context "when the duration is very short (e.g., 2s)" do
-      let(:media_item) { instance_double("MediaItem", id: 123, duration: 2) }
+      let(:playable) { instance_double("Movie", id: 123, duration_seconds: 2) }
 
       it "calculates only 1 segment" do
         expect(cache.playlist).to include("000.ts")
