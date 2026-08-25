@@ -14,18 +14,21 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
 
-      post "library/scan", to: "library#scan"
+      resources :library, only: [:index, :show] do
+        get "scan", on: :collection
+      end
 
-      resources :media_items, only: [:index] do
+      resources :playable, only: [] do
+        post "/progresses", to: "progresses#create", on: :member
+      end
+
+      resources :streaming, only: [] do
         member do
-          get "hls/playlist.m3u8", action: :hls_playlist, as: :hls_playlist
-          get "hls/:index.ts", action: :hls_segment, as: :hls_segment
-
-          get "subtitle/:index", action: :subtitle
-          get "stream_audio/:index", action: :stream_audio
-          get :stream_video
+          get "audio/:index", to: "streaming#audio"
+          get "subtitle/:index",     to: "streaming#subtitle"
+          get "hls/playlist.m3u8",   to: "streaming#hls_playlist"
+          get "hls/:index.ts", to: "streaming#hls_segment"
         end
-        resources :media_progresses, only: [:create]
       end
     end
   end
