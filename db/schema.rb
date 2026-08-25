@@ -10,21 +10,21 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_16_212343) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_22_152542) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
-  create_table "active_storage_attachments", force: :cascade do |t|
-    t.bigint "blob_id", null: false
+  create_table "active_storage_attachments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "blob_id", null: false
     t.datetime "created_at", null: false
     t.string "name", null: false
-    t.bigint "record_id", null: false
+    t.uuid "record_id", null: false
     t.string "record_type", null: false
     t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
     t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
   end
 
-  create_table "active_storage_blobs", force: :cascade do |t|
+  create_table "active_storage_blobs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.bigint "byte_size", null: false
     t.string "checksum"
     t.string "content_type"
@@ -36,64 +36,72 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_16_212343) do
     t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
   end
 
-  create_table "active_storage_variant_records", force: :cascade do |t|
-    t.bigint "blob_id", null: false
+  create_table "active_storage_variant_records", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
-  create_table "categories", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.string "name"
-    t.datetime "updated_at", null: false
-  end
-
-  create_table "collection_items", force: :cascade do |t|
-    t.bigint "collection_id", null: false
-    t.datetime "created_at", null: false
-    t.bigint "media_item_id", null: false
-    t.integer "position"
-    t.datetime "updated_at", null: false
-    t.index ["collection_id"], name: "index_collection_items_on_collection_id"
-    t.index ["media_item_id"], name: "index_collection_items_on_media_item_id"
-  end
-
-  create_table "collections", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.boolean "is_private"
-    t.string "name"
-    t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
-    t.index ["user_id"], name: "index_collections_on_user_id"
-  end
-
-  create_table "media_items", force: :cascade do |t|
+  create_table "episodes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.jsonb "audio_tracks", default: [], null: false
-    t.bigint "category_id"
     t.datetime "created_at", null: false
-    t.text "description"
-    t.integer "duration"
+    t.integer "duration_seconds"
     t.string "file_path", null: false
-    t.integer "media_type"
+    t.integer "number"
+    t.uuid "season_id", null: false
     t.jsonb "subtitle_tracks", default: [], null: false
     t.string "title"
     t.datetime "updated_at", null: false
-    t.index ["category_id"], name: "index_media_items_on_category_id"
-    t.index ["file_path"], name: "index_media_items_on_file_path", unique: true
+    t.index ["file_path"], name: "index_episodes_on_file_path", unique: true
+    t.index ["season_id", "number"], name: "index_episodes_on_season_id_and_number", unique: true
+    t.index ["season_id"], name: "index_episodes_on_season_id"
   end
 
-  create_table "media_progresses", force: :cascade do |t|
+  create_table "movies", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.jsonb "audio_tracks", default: [], null: false
+    t.datetime "created_at", null: false
+    t.integer "duration_seconds"
+    t.string "file_path", null: false
+    t.jsonb "subtitle_tracks", default: [], null: false
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["file_path"], name: "index_movies_on_file_path", unique: true
+  end
+
+  create_table "progresses", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_watched_at"
-    t.bigint "media_item_id", null: false
-    t.integer "progress_seconds"
+    t.uuid "playable_id", null: false
+    t.string "playable_type", null: false
+    t.integer "seconds"
     t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
-    t.index ["media_item_id"], name: "index_media_progresses_on_media_item_id"
-    t.index ["user_id"], name: "index_media_progresses_on_user_id"
+    t.uuid "user_id", null: false
+    t.index ["playable_type", "playable_id"], name: "index_progresses_on_playable"
+    t.index ["user_id", "playable_type", "playable_id"], name: "index_progresses_on_user_id_and_playable_type_and_playable_id", unique: true
+    t.index ["user_id"], name: "index_progresses_on_user_id"
   end
 
-  create_table "users", force: :cascade do |t|
+  create_table "seasons", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "number", null: false
+    t.uuid "show_id", null: false
+    t.string "source_path", null: false
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["show_id", "number"], name: "index_seasons_on_show_id_and_number", unique: true
+    t.index ["show_id"], name: "index_seasons_on_show_id"
+    t.index ["source_path"], name: "index_seasons_on_source_path", unique: true
+  end
+
+  create_table "shows", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "source_path", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["source_path"], name: "index_shows_on_source_path", unique: true
+  end
+
+  create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name"
     t.datetime "updated_at", null: false
@@ -101,10 +109,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_16_212343) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
-  add_foreign_key "collection_items", "collections"
-  add_foreign_key "collection_items", "media_items"
-  add_foreign_key "collections", "users"
-  add_foreign_key "media_items", "categories"
-  add_foreign_key "media_progresses", "media_items"
-  add_foreign_key "media_progresses", "users"
+  add_foreign_key "episodes", "seasons"
+  add_foreign_key "progresses", "users"
+  add_foreign_key "seasons", "shows"
 end
