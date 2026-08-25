@@ -58,8 +58,8 @@ RSpec.describe ScanShowsService do
         expect(episode.number).to eq(2)
       end
 
-      it "enqueues PlayableMetadataProcessingJob for each new episode" do
-        expect { call }.to have_enqueued_job(PlayableMetadataProcessingJob).twice
+      it "enqueues Playable::MetadataProcessingJob for each new episode" do
+        expect { call }.to have_enqueued_job(Playable::MetadataProcessingJob).twice
       end
     end
 
@@ -109,7 +109,7 @@ RSpec.describe ScanShowsService do
       end
 
       it "does not enqueue a new metadata job" do
-        expect { call }.not_to have_enqueued_job(PlayableMetadataProcessingJob)
+        expect { call }.not_to have_enqueued_job(Playable::MetadataProcessingJob)
       end
     end
 

@@ -121,7 +121,7 @@ class ScanShowsService
 
     if episode.save
       Rails.logger.info("Indexed new episode: #{show_title_for(season)} - #{clean_title}")
-      PlayableMetadataProcessingJob.perform_later(episode)
+      Playable::MetadataProcessingJob.perform_later(episode)
     else
       Rails.logger.info("Failed to index #{file_path}: #{episode.errors.full_messages.join(', ')}")
     end

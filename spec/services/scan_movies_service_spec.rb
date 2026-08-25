@@ -40,7 +40,7 @@ RSpec.describe ScanMoviesService do
       end
 
       it "enqueues MediaMetadataProcessingJob for each new item" do
-        expect { call }.to have_enqueued_job(PlayableMetadataProcessingJob).twice
+        expect { call }.to have_enqueued_job(Playable::MetadataProcessingJob).twice
       end
     end
 
@@ -61,7 +61,7 @@ RSpec.describe ScanMoviesService do
       end
 
       it "does not enqueue a new metadata job" do
-        expect { call }.not_to have_enqueued_job(PlayableMetadataProcessingJob)
+        expect { call }.not_to have_enqueued_job(Playable::MetadataProcessingJob)
       end
     end
 

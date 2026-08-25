@@ -49,7 +49,7 @@ class ScanMoviesService
 
     if media.save
       Rails.logger.info("Indexed new media: #{clean_title}")
-      PlayableMetadataProcessingJob.perform_later(media)
+      Playable::MetadataProcessingJob.perform_later(media)
     else
       Rails.logger.info("Failed to index #{file_path}: #{media.errors.full_messages.join(', ')}")
     end
