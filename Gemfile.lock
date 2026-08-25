@@ -102,6 +102,11 @@ GEM
     erubi (1.13.1)
     et-orbi (1.4.0)
       tzinfo
+    factory_bot (6.6.0)
+      activesupport (>= 6.1.0)
+    factory_bot_rails (6.5.1)
+      factory_bot (~> 6.5)
+      railties (>= 6.1.0)
     ffi (1.17.4-x86_64-linux-gnu)
     fugit (1.13.0)
       et-orbi (~> 1.4)
@@ -345,6 +350,7 @@ DEPENDENCIES
   brakeman
   bundler-audit
   debug
+  factory_bot_rails (>= 6.2)
   image_processing (~> 1.2)
   kamal
   pg (~> 1.1)
