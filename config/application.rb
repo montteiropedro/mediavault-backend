@@ -37,6 +37,7 @@ module App
     config.middleware.use ActionDispatch::Session::CookieStore, config.session_options
 
     config.generators do |g|
+      g.orm :active_record, primary_key_type: :uuid
       g.test_framework :rspec
     end
   end

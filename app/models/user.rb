@@ -1,6 +1,5 @@
 class User < ApplicationRecord
-  has_many :media_progresses, dependent: :destroy
-  has_many :collections, dependent: :destroy
+  has_many :progresses, dependent: :destroy
 
   validates :name, presence: true
 end
