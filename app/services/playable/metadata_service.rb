@@ -1,13 +1,13 @@
-class MediaMetadataService
+class Playable::MetadataService
   Stream = Data.define(:id, :language, :label)
 
-  def self.call(media_item)
-    new(media_item).call
+  def self.call(media)
+    new(media).call
   end
 
-  def initialize(media_item)
-    @media_item = media_item
-    @file_path = media_item.file_path
+  def initialize(media)
+    @media = media
+    @file_path = media.file_path
   end
 
   def call
@@ -23,12 +23,14 @@ class MediaMetadataService
       "-print_format", "json",
       "-show_streams",
       "-show_format",
-      @file_path.to_s
+      @file_path
     )
 
+    "ffprobe -v quiet -print_format json -show_streams -show_format"
+
     unless status.success?
-      error = RuntimeError.new(stderr.presence || "Error fetching metadata (Exit code: #{status.exitstatus})")
-      ApplicationLogger.error(error, location: "MediaMetadataService")
+      error = RuntimeError.new(stderr.presence || "Error fetching metadata")
+      ApplicationLogger.error(error, location: self.class.name)
       return false
     end
 
@@ -40,13 +42,15 @@ class MediaMetadataService
     audio_streams = streams.select { |s| s["codec_type"] == "audio" }
     subtitle_streams = streams.select { |s| s["codec_type"] == "subtitle" }
 
-    @media_item.duration = format_info["duration"].to_f.round
-    @media_item.audio_tracks = format_streams(audio_streams).map(&:to_h)
-    @media_item.subtitle_tracks = format_streams(subtitle_streams).map(&:to_h)
+    @media.duration_seconds = format_info["duration"].to_f.round
+    @media.title = format_info["tags"]["title"] if format_info.dig("tags", "title").present?
+    @media.audio_tracks = format_streams(audio_streams).map(&:to_h)
+    @media.subtitle_tracks = format_streams(subtitle_streams).map(&:to_h)
 
-    attach_cover(video_streams)
+    attach_cover(video_streams) if is_cover_attachable?
+    attach_thumbnail if is_thumbnail_attachable?
 
-    @media_item.save!
+    @media.save!
   end
 
   def format_streams(streams)
@@ -59,6 +63,14 @@ class MediaMetadataService
         label: tags["title"] || tags["language"] || "#{stream['codec_type']} #{relative_index + 1}"
       )
     end
+  end
+
+  def is_cover_attachable?
+    @media.respond_to?(:cover_art)
+  end
+
+  def is_thumbnail_attachable?
+    @media.respond_to?(:thumbnail)
   end
 
   def attach_cover(video_streams)
@@ -82,13 +94,43 @@ class MediaMetadataService
 
     unless status.success?
       error = RuntimeError.new(stderr.presence || "Failed to extract cover")
-      ApplicationLogger.error(error, location: "MediaMetadataService")
+      ApplicationLogger.error(error, location: self.class.name)
       return
     end
 
-    @media_item.cover_art.attach(
+    @media.cover_art.attach(
       io: File.open(tmp_path),
-      filename: "#{@media_item.id}_cover.#{extension}",
+      filename: "#{@media.id}_cover.#{extension}",
+      content_type: Marcel::MimeType.for(tmp_path)
+    )
+  ensure
+    File.delete(tmp_path) if tmp_path && File.exist?(tmp_path)
+  end
+
+  def attach_thumbnail
+    tmp_path = Rails.root.join("tmp", "thumbnail", "#{SecureRandom.uuid}.jpg")
+    FileUtils.mkdir_p(tmp_path.dirname)
+    thumbnail_timestamp = (@media.duration_seconds.to_f * 0.3).round(2)
+
+    _stdout, stderr, status = Open3.capture3(
+      "ffmpeg", "-y",
+      "-ss", thumbnail_timestamp.to_s,
+      "-i", @file_path.to_s,
+      "-map", "0:V:0",
+      "-frames:v", "1",
+      "-q:v", "2",
+      tmp_path.to_s
+    )
+
+    unless status.success?
+      error = RuntimeError.new(stderr.presence || "Failed to extract thumbnail")
+      ApplicationLogger.error(error, location: self.class.name)
+      return
+    end
+
+    @media.thumbnail.attach(
+      io: File.open(tmp_path),
+      filename: "#{@media.id}_thumbnail.jpg",
       content_type: Marcel::MimeType.for(tmp_path)
     )
   ensure

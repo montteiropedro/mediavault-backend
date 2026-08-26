@@ -1,28 +1,27 @@
 require "rails_helper"
 
-RSpec.describe MediaMetadataService do
+RSpec.describe Playable::MetadataService do
   describe ".call" do
-    subject(:call) { described_class.call(media_item) }
+    subject(:call) { described_class.call(playable) }
 
-    let(:file_path) { "/path/to/movie.mkv" }
-    let(:cover_art_association) { instance_double(ActiveStorage::Attached::One) }
-    let(:media_item) { instance_double("MediaItem", id: 42, file_path: file_path, cover_art: cover_art_association) }
+    let(:file_path) { "/path/to/playable.mkv" }
+    let(:image_association) { instance_double(ActiveStorage::Attached::One) }
+    let(:playable) { instance_double("Movie", id: 123, file_path: file_path, cover_art: image_association) }
 
-    let(:ffprobe_exitstatus) { 0 }
-    let(:ffprobe_status) { instance_double(Process::Status, success?: ffprobe_success, exitstatus: ffprobe_exitstatus) }
+    let(:ffprobe_status) { instance_double(Process::Status, success?: ffprobe_success) }
 
     let(:ffmpeg_success) { true }
     let(:ffmpeg_stderr) { "" }
     let(:ffmpeg_exitstatus) { 0 }
-    let(:ffmpeg_status) { instance_double(Process::Status, success?: ffmpeg_success, exitstatus: ffmpeg_exitstatus) }
+    let(:ffmpeg_status) { instance_double(Process::Status, success?: ffmpeg_success) }
     let(:ffmpeg_invocations) { [] }
 
     before do
-      allow(media_item).to receive(:duration=)
-      allow(media_item).to receive(:audio_tracks=)
-      allow(media_item).to receive(:subtitle_tracks=)
-      allow(media_item).to receive(:save!).and_return(true)
-      allow(cover_art_association).to receive(:attach)
+      allow(playable).to receive(:duration_seconds=)
+      allow(playable).to receive(:audio_tracks=)
+      allow(playable).to receive(:subtitle_tracks=)
+      allow(playable).to receive(:save!).and_return(true)
+      allow(image_association).to receive(:attach)
       allow(ApplicationLogger).to receive(:error)
       allow(Marcel::MimeType).to receive(:for).and_return("image/jpeg")
 
@@ -59,13 +58,13 @@ RSpec.describe MediaMetadataService do
       it "persists the rounded duration" do
         call
 
-        expect(media_item).to have_received(:duration=).with(126)
+        expect(playable).to have_received(:duration_seconds=).with(126)
       end
 
       it "persists audio tracks formatted as hashes" do
         call
 
-        expect(media_item).to have_received(:audio_tracks=).with(
+        expect(playable).to have_received(:audio_tracks=).with(
           [
             { id: 0, language: "por", label: "Portuguese (Brazil)" },
             { id: 1, language: "eng", label: "eng" }
@@ -76,7 +75,7 @@ RSpec.describe MediaMetadataService do
       it "persists subtitle tracks, falling back to 'subtitle N' as label" do
         call
 
-        expect(media_item).to have_received(:subtitle_tracks=).with(
+        expect(playable).to have_received(:subtitle_tracks=).with(
           [
             { id: 0, language: "por", label: "Portuguese (Brazil)" },
             { id: 1, language: "eng", label: "eng" },
@@ -85,16 +84,16 @@ RSpec.describe MediaMetadataService do
         )
       end
 
-      it "saves the media_item and returns the result of save!" do
+      it "saves the playable and returns the result of save!" do
         expect(call).to eq(true)
-        expect(media_item).to have_received(:save!)
+        expect(playable).to have_received(:save!)
       end
 
       it "does not call ffmpeg when no video stream is a cover" do
         call
 
         expect(ffmpeg_invocations).to be_empty
-        expect(cover_art_association).not_to have_received(:attach)
+        expect(image_association).not_to have_received(:attach)
       end
     end
 
@@ -106,7 +105,7 @@ RSpec.describe MediaMetadataService do
       it "persists a duration of 0 instead of raising" do
         call
 
-        expect(media_item).to have_received(:duration=).with(0)
+        expect(playable).to have_received(:duration_seconds=).with(0)
       end
     end
 
@@ -121,14 +120,14 @@ RSpec.describe MediaMetadataService do
         expect(ApplicationLogger)
           .to have_received(:error)
           .with(an_instance_of(RuntimeError), location: described_class.to_s)
-        expect(media_item).not_to have_received(:duration=)
-        expect(media_item).not_to have_received(:audio_tracks=)
-        expect(media_item).not_to have_received(:subtitle_tracks=)
-        expect(media_item).not_to have_received(:save!)
+        expect(playable).not_to have_received(:duration_seconds=)
+        expect(playable).not_to have_received(:audio_tracks=)
+        expect(playable).not_to have_received(:subtitle_tracks=)
+        expect(playable).not_to have_received(:save!)
       end
     end
 
-    context "cover art extraction" do
+    context "cover art extraction when playable is a Movie" do
       let(:ffprobe_success) { true }
       let(:ffprobe_stderr) { "" }
 
@@ -145,9 +144,9 @@ RSpec.describe MediaMetadataService do
         it "extracts and attaches the cover with the correct extension for the codec" do
           call
 
-          expect(cover_art_association)
+          expect(image_association)
             .to have_received(:attach)
-            .with(hash_including(filename: "42_cover.jpg", content_type: "image/jpeg"))
+            .with(hash_including(filename: "123_cover.jpg", content_type: "image/jpeg"))
         end
 
         it "removes the temporary file after attaching" do
@@ -171,9 +170,9 @@ RSpec.describe MediaMetadataService do
         it "identifies the cover by mimetype and uses the matching extension" do
           call
 
-          expect(cover_art_association)
+          expect(image_association)
             .to have_received(:attach)
-            .with(hash_including(filename: "42_cover.png"))
+            .with(hash_including(filename: "123_cover.png"))
         end
       end
 
@@ -190,9 +189,9 @@ RSpec.describe MediaMetadataService do
         it "identifies the cover by filename" do
           call
 
-          expect(cover_art_association)
+          expect(image_association)
             .to have_received(:attach)
-            .with(hash_including(filename: "42_cover.bmp"))
+            .with(hash_including(filename: "123_cover.bmp"))
         end
       end
 
@@ -209,9 +208,9 @@ RSpec.describe MediaMetadataService do
         it "falls back to jpg as the default extension" do
           call
 
-          expect(cover_art_association)
+          expect(image_association)
             .to have_received(:attach)
-            .with(hash_including(filename: "42_cover.jpg"))
+            .with(hash_including(filename: "123_cover.jpg"))
         end
       end
 
@@ -233,8 +232,47 @@ RSpec.describe MediaMetadataService do
           expect(ApplicationLogger)
             .to have_received(:error)
             .with(an_instance_of(RuntimeError), location: described_class.to_s)
-          expect(cover_art_association).not_to have_received(:attach)
-          expect(media_item).to have_received(:save!)
+          expect(image_association).not_to have_received(:attach)
+          expect(playable).to have_received(:save!)
+        end
+      end
+    end
+
+    context "thumbnail extraction when playable is a Episode" do
+      let(:playable) { instance_double("Episode", id: 456, duration_seconds: 1000, file_path: file_path, thumbnail: image_association) }
+      let(:ffprobe_stderr) { "" }
+      let(:ffprobe_stdout) { "_stdout".to_json }
+      let(:ffprobe_success) { true }
+
+      it "extracts and attaches a thumbnail from the episode video" do
+        call
+
+        expect(image_association)
+          .to have_received(:attach)
+          .with(hash_including(filename: "456_thumbnail.jpg", content_type: "image/jpeg"))
+      end
+
+      it "removes the temporary file after attaching" do
+        call
+
+        tmp_path = ffmpeg_invocations.last.last
+        expect(File.exist?(tmp_path)).to eq(false)
+      end
+
+      context "when ffmpeg fails to extract the thumbnail" do
+        let(:ffprobe_stdout) { "_stdout".to_json }
+        let(:ffmpeg_success) { false }
+
+        it "logs the error, skips attaching the thumbnail, but still saves the other metadata" do
+          expect(call).to eq(true)
+          expect(ApplicationLogger)
+            .to have_received(:error)
+            .with(
+              an_object_having_attributes(message: "Failed to extract thumbnail"),
+              location: described_class.to_s
+            )
+          expect(image_association).not_to have_received(:attach)
+          expect(playable).to have_received(:save!)
         end
       end
     end

@@ -35,6 +35,8 @@ gem "image_processing", "~> 1.2"
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin Ajax possible
 gem "rack-cors"
 
+gem 'alba', '>= 3.11'
+
 gem "sidekiq", "~> 8.1"
 
 group :development, :test do

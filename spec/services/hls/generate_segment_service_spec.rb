@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Hls::GenerateSegmentService do
-  let(:media_item) { instance_double("MediaItem", file_path: "path/to/media.mp4") }
+  let(:playable) { instance_double("Episode", file_path: "path/to/episode.mp4") }
   let(:output_path) { @tmp_dir.join("segment002.ts").to_s }
 
   around do |example|
@@ -17,12 +17,14 @@ RSpec.describe Hls::GenerateSegmentService do
         expect(Open3).to receive(:capture3).with(
           "ffmpeg", "-y",
           "-ss", "12",
-          "-i", "path/to/media.mp4",
+          "-i", "path/to/episode.mp4",
           "-t", "6",
-          "-map", "0:v:0",
+          "-map", "0:V:0",
           "-map", "0:a:0",
           "-c:v", "libx264",
           "-c:a", "aac",
+          "-ac", "2",
+          "-b:a", "192k",
           "-output_ts_offset", "12",
           "-muxdelay", "0",
           "-f", "mpegts",
@@ -33,7 +35,7 @@ RSpec.describe Hls::GenerateSegmentService do
           ["", "ffmpeg success", instance_double(Process::Status, success?: true)]
         end
 
-        result = described_class.call(media_item, 2, output_path)
+        result = described_class.call(playable, 2, output_path)
 
         expect(result.success).to be(true)
         expect(result.stderr).to eq("ffmpeg success")
@@ -48,7 +50,7 @@ RSpec.describe Hls::GenerateSegmentService do
           ["", "ffmpeg output was empty", instance_double(Process::Status, success?: true)]
         end
 
-        result = described_class.call(media_item, 2, output_path)
+        result = described_class.call(playable, 2, output_path)
 
         expect(result.success).to be(false)
         expect(result.stderr).to eq("ffmpeg output was empty")
@@ -64,7 +66,7 @@ RSpec.describe Hls::GenerateSegmentService do
           ["", "ffmpeg conversion failed", instance_double(Process::Status, success?: false)]
         end
 
-        result = described_class.call(media_item, 2, output_path)
+        result = described_class.call(playable, 2, output_path)
 
         expect(result.success).to be(false)
         expect(result.stderr).to eq("ffmpeg conversion failed")
@@ -77,7 +79,7 @@ RSpec.describe Hls::GenerateSegmentService do
           ["", "", instance_double(Process::Status, success?: false)]
         end
 
-        result = described_class.call(media_item, 2, output_path)
+        result = described_class.call(playable, 2, output_path)
 
         expect(result.success).to be(false)
         expect(result.stderr).to eq("ffmpeg failed or produced empty file")

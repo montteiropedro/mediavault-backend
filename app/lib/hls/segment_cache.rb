@@ -4,8 +4,8 @@ class Hls::SegmentCache
 
   attr_reader :base_dir
 
-  def initialize(media_item, base_dir: DEFAULT_BASE_DIR)
-    @media_item = media_item
+  def initialize(playable, base_dir: DEFAULT_BASE_DIR)
+    @playable = playable
     @base_dir = Pathname.new(base_dir)
   end
 
@@ -34,11 +34,11 @@ class Hls::SegmentCache
   private
 
   def total_segments
-    duration = @media_item.duration
+    duration = @playable.duration_seconds
     (duration.to_f / SEGMENT_DURATION_IN_SECONDS).ceil
   end
 
   def cache_dir
-    @base_dir.join(@media_item.id.to_s)
+    @base_dir.join(@playable.id.to_s)
   end
 end
