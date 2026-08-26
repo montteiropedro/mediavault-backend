@@ -13,11 +13,7 @@ puts "=== Populating MediaVault Database ==="
 puts "\nCreating default users..."
 home = User.find_or_create_by!(name: "Home")
 
-puts "Creating default categories..."
-movies = Category.find_or_create_by!(name: "Movies")
-tv_shows = Category.find_or_create_by!(name: "TV Shows")
-
-puts "\nScanning local media library..."
-ScanMediaService.call
+puts "\nScanning library for movies and shows..."
+LibraryScanJob.perform_later
 
 puts "\nSeed completed successfully!"
