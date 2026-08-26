@@ -14,7 +14,8 @@ services:
     command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -b '0.0.0.0'"
     volumes:
       - .:/app
-      - ${DEFAULT_MEDIA_PATH:?please set its value in the .env file}:/media/library:ro
+      - ${DEFAULT_MOVIES_PATH:?please set its value in the .env file}:/media/library/movies:ro
+      - ${DEFAULT_SHOWS_PATH:?please set its value in the .env file}:/media/library/shows:ro
     ports:
       - "${PORT:-3000}:3000"
     env_file:
@@ -52,7 +53,8 @@ services:
     command: bundle exec sidekiq
     volumes:
       - .:/app
-      - ${DEFAULT_MEDIA_PATH:?please set its value in the .env file}:/media/library:ro
+      - ${DEFAULT_MOVIES_PATH:?please set its value in the .env file}:/media/library/movies:ro
+      - ${DEFAULT_SHOWS_PATH:?please set its value in the .env file}:/media/library/shows:ro
     environment:
       <<: *app-env
     depends_on:
