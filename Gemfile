@@ -38,6 +38,7 @@ gem "rack-cors"
 gem 'alba', '>= 3.11'
 
 gem "sidekiq", "~> 8.1"
+gem "sidekiq-cron"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
