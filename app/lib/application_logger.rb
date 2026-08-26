@@ -1,29 +1,40 @@
 module ApplicationLogger
   class << self
+    def info(message, location:, context: {})
+      Rails.logger.info "[INFO] #{format_log(message, location:, context:)}"
+    end
+
+    def warn(message, location:, context: {})
+      Rails.logger.warn "[WARN] #{format_log(message, location:, context:)}"
+    end
+
     def error(exception, location:, context: {})
-      Rails.logger.error <<~LOG
-        [ERROR] #{Time.current}
-        | Location: #{location}
-        | Error: #{exception.class}
-        | Message: #{exception.message}
-        | Context: #{format_context(context)}
-        | Backtrace: #{format_backtrace(exception.backtrace)}
-        -
-      LOG
+      error_string = [
+        "[ERROR]",
+        format_log(exception.message, location:, context: { error: exception.class }.merge(context)),
+        format_backtrace(exception.backtrace).presence
+      ].compact.join(" ")
+
+      Rails.logger.error error_string
     end
 
     private
 
-    def format_context(context)
-      return "-" if context.blank?
+    def format_log(message, location:, context:)
+      [Time.current, "location=#{location}", format_context(context).presence]
+        .compact.join(" ") + ": #{message}"
+    end
 
-      context.map { |key, value| "#{key}=#{value}" }.join(", ")
+    def format_context(context)
+      return if context.blank?
+
+      context.map { |key, value| "#{key}=#{value}" }.join(" ")
     end
 
     def format_backtrace(backtrace)
-      return "-" if backtrace.blank?
+      return if backtrace.blank?
 
-      "\n" + backtrace.join("\n|  ")
+      "\n [BACKTRACE]" + backtrace.first(15).join("\n  ")
     end
   end
 end
