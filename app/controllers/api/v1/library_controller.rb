@@ -27,8 +27,8 @@ class Api::V1::LibraryController < ApplicationController
 
   def serialize(item)
     case item
-    when Movie then MovieSerializer.new(item, params: { request: request }).as_json
-    when Episode then EpisodeSerializer.new(item, params: { request: request }).as_json
+    when Movie then MovieSerializer.new(item, params: { user: current_user, request: request }).as_json
+    when Episode then EpisodeSerializer.new(item, params: { user: current_user, request: request }).as_json
     when Show then ShowSerializer.new(item, params: { request: request }).as_json
     when Season then SeasonSerializer.new(item, params: { request: request }).as_json
     end
