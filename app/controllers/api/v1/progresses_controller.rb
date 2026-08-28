@@ -2,7 +2,7 @@ class Api::V1::ProgressesController < ApplicationController
   before_action :set_playable
 
   def create
-    progress = Progress.find_or_initialize_by(user: User.first, playable: @playable)
+    progress = Progress.find_or_initialize_by(user: current_user, playable: @playable)
     progress.assign_attributes(
       seconds: progress_params[:seconds].to_f.floor,
       last_watched_at: Time.current
