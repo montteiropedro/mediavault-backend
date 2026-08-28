@@ -2,6 +2,8 @@ require "rails_helper"
 
 RSpec.describe "Api::V1::Streaming", type: :request do
   describe "GET /api/v1/streaming/:id/subtitle/:index" do
+    let(:user) { create(:user) }
+
     let(:playable) { create(:movie, title: "Test Movie", file_path: "/path/to/movie.mkv") }
     let(:track_index) { 123 }
     let(:cache) { instance_double(MediaSubtitleCache) }
@@ -23,6 +25,8 @@ RSpec.describe "Api::V1::Streaming", type: :request do
           content_type: options[:type]
         )
       end
+
+      login(user)
     end
 
     context "when the subtitle is not cached and the extraction succeeds" do

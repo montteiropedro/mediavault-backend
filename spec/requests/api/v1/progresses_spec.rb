@@ -4,6 +4,8 @@ RSpec.describe "Api::V1::Progresses", type: :request do
   describe "POST /api/v1/playable/:id/progresses" do
     let!(:user) { create(:user) }
 
+    before { login(user) }
+
     context "when the playable is a Movie" do
       let(:movie) { create(:movie) }
 
