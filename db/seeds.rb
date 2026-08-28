@@ -10,8 +10,9 @@
 
 puts "=== Populating MediaVault Database ==="
 
-puts "\nCreating default users..."
-home = User.find_or_create_by!(name: "Home")
+puts "\nCreating default user..."
+user = User.find_or_create_by!(username: "home")
+puts "default user token: #{user.raw_token}"
 
 puts "\nScanning library for movies and shows..."
 LibraryScanJob.perform_later
