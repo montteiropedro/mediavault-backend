@@ -14,6 +14,6 @@ class EpisodeSerializer
   end
 
   attribute :user_progress_seconds do |episode|
-    episode.user_progress(current_user)
+    episode.user_progress(params[:user])
   end
 end

@@ -14,6 +14,6 @@ class MovieSerializer
   end
 
   attribute :user_progress_seconds do |movie|
-    movie.user_progress(current_user)
+    movie.user_progress(params[:user])
   end
 end
