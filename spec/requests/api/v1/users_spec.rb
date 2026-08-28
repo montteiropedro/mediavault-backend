@@ -6,7 +6,7 @@ RSpec.describe "Api::V1::Users", type: :request do
       let(:user) { create(:user) }
 
       before do
-        post "/api/v1/session", params: { username: user.username, token: user.raw_token }
+        login(user)
         get "/api/v1/me"
       end
 
