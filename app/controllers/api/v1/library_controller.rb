@@ -4,8 +4,8 @@ class Api::V1::LibraryController < ApplicationController
     shows = Show.includes(seasons: :episodes).all.with_attached_cover_art
 
     render json: {
-      movies: MovieSerializer.new(movies, params: { request: request }).as_json,
-      shows: ShowSerializer.new(shows, params: { request: request }).as_json
+      movies: MovieSerializer.new(movies, params: { user: current_user, request: request }).as_json,
+      shows: ShowSerializer.new(shows, params: { user: current_user, request: request }).as_json
     }
   end
 
