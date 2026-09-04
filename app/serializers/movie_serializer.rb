@@ -1,11 +1,8 @@
 class MovieSerializer
   include Alba::Resource
+  include LibraryAttributes
 
   attributes :id, :title, :duration_seconds, :audio_tracks, :subtitle_tracks
-
-  attribute :type do
-    "movie"
-  end
 
   attribute :cover_art_url do |movie|
     next nil unless movie.cover_art.attached?

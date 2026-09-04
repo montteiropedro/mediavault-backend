@@ -43,7 +43,7 @@ class Api::V1::StreamingController < ApplicationController
   private
 
   def set_playable
-    @playable = Playable.find_playable(params[:id], type: params[:type])
+    @playable = Library.find_playable(params[:id], type: params[:type])
   rescue ActiveRecord::RecordNotFound
     render json: { error: "playable not found" }, status: :not_found
   end
