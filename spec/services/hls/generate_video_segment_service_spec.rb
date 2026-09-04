@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe Hls::GenerateSegmentService do
+RSpec.describe Hls::GenerateVideoSegmentService do
   let(:playable) { instance_double("Episode", file_path: "path/to/episode.mp4") }
   let(:output_path) { @tmp_dir.join("segment002.ts").to_s }
 
@@ -20,11 +20,7 @@ RSpec.describe Hls::GenerateSegmentService do
           "-i", "path/to/episode.mp4",
           "-t", "6",
           "-map", "0:V:0",
-          "-map", "0:a:0",
           "-c:v", "libx264",
-          "-c:a", "aac",
-          "-ac", "2",
-          "-b:a", "192k",
           "-output_ts_offset", "12",
           "-muxdelay", "0",
           "-f", "mpegts",
@@ -82,7 +78,7 @@ RSpec.describe Hls::GenerateSegmentService do
         result = described_class.call(playable, 2, output_path)
 
         expect(result.success).to be(false)
-        expect(result.stderr).to eq("ffmpeg failed or produced empty file")
+        expect(result.stderr).to eq("ffmpeg failed or produced empty video file")
       end
     end
   end
