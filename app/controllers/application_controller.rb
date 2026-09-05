@@ -6,7 +6,9 @@ class ApplicationController < ActionController::API
   private
 
   def authenticate_user!
-    token = cookies.encrypted[:api_token]
+    # Tenta ler do cookie criptografado (Web). Se não achar, tenta ler do Header (Mobile).
+    token = cookies.encrypted[:api_token] || request.headers['Authorization']&.split(' ')&.last
+
     @current_user = User.authenticate_by_token(token)
     render status: :unauthorized unless @current_user
   end

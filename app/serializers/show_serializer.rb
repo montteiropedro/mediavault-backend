@@ -1,5 +1,6 @@
 class ShowSerializer
   include Alba::Resource
+  include LibraryAttributes
 
   attributes :id, :title
 

@@ -13,7 +13,8 @@ RSpec.describe Hls::SegmentLock do
   describe ".synchronize" do
     it "executes the provided code block" do
       executed = false
-      described_class.synchronize(123, 1) do
+
+      described_class.synchronize(123, "video", 1) do
         executed = true
       end
 
@@ -21,9 +22,9 @@ RSpec.describe Hls::SegmentLock do
     end
 
     it "creates the lock file in the correct location" do
-      lock_file = @tmp_dir.join("123", "1.lock")
+      lock_file = @tmp_dir.join("123", "video", "1.lock")
 
-      expect { described_class.synchronize(123, 1) {} }
+      expect { described_class.synchronize(123, "video", 1) {} }
         .to change { File.exist?(lock_file) }
         .from(false)
         .to(true)
@@ -34,7 +35,7 @@ RSpec.describe Hls::SegmentLock do
       thread_1_holding_lock = false
 
       t1 = Thread.new do
-        described_class.synchronize(123, 1) do
+        described_class.synchronize(123, "video", 1) do
           thread_1_holding_lock = true
           sleep(0.1)
           execution_order << :thread_1
@@ -44,7 +45,7 @@ RSpec.describe Hls::SegmentLock do
       sleep(0.01) until thread_1_holding_lock
 
       t2 = Thread.new do
-        described_class.synchronize(123, 1) do
+        described_class.synchronize(123, "video", 1) do
           execution_order << :thread_2
         end
       end
@@ -55,30 +56,82 @@ RSpec.describe Hls::SegmentLock do
       expect(execution_order).to eq([:thread_1, :thread_2])
     end
 
-    it "allows parallel concurrency across different segments or media" do
+    it "allows parallel concurrency across different segment indexes" do
       execution_order = []
       thread_1_holding_lock = false
 
       t1 = Thread.new do
-        described_class.synchronize(123, 1) do
+        described_class.synchronize(123, "video", 1) do
           thread_1_holding_lock = true
           sleep(0.1)
-          execution_order << :midia_123_seg_1
+          execution_order << :segment_1
         end
       end
 
       sleep(0.01) until thread_1_holding_lock
 
       t2 = Thread.new do
-        described_class.synchronize(123, 2) do
-          execution_order << :midia_123_seg_2
+        described_class.synchronize(123, "video", 2) do
+          execution_order << :segment_2
         end
       end
 
       t1.join
       t2.join
 
-      expect(execution_order).to eq([:midia_123_seg_2, :midia_123_seg_1])
+      expect(execution_order).to eq([:segment_2, :segment_1])
+    end
+
+    it "allows parallel concurrency across different resource types (e.g., video & audio)" do
+      execution_order = []
+      thread_1_holding_lock = false
+
+      t1 = Thread.new do
+        described_class.synchronize(123, "video", 1) do
+          thread_1_holding_lock = true
+          sleep(0.1)
+          execution_order << :video
+        end
+      end
+
+      sleep(0.01) until thread_1_holding_lock
+
+      t2 = Thread.new do
+        described_class.synchronize(123, "audio", 1) do
+          execution_order << :audio
+        end
+      end
+
+      t1.join
+      t2.join
+
+      expect(execution_order).to eq([:audio, :video])
+    end
+
+    it "allows parallel concurrency across different playables of the same resource type" do
+      execution_order = []
+      thread_1_holding_lock = false
+
+      t1 = Thread.new do
+        described_class.synchronize(123, "video", 1) do
+          thread_1_holding_lock = true
+          sleep(0.1)
+          execution_order << :playable_123
+        end
+      end
+
+      sleep(0.01) until thread_1_holding_lock
+
+      t2 = Thread.new do
+        described_class.synchronize(456, "video", 1) do
+          execution_order << :playable_456
+        end
+      end
+
+      t1.join
+      t2.join
+
+      expect(execution_order).to eq([:playable_456, :playable_123])
     end
   end
 end

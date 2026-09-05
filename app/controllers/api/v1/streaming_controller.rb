@@ -40,37 +40,10 @@ class Api::V1::StreamingController < ApplicationController
     send_file cached_track_path, type: "text/vtt", disposition: "inline"
   end
 
-  def hls_playlist
-    cache = Hls::SegmentCache.new(@playable)
-    cache.prepare!
-
-    render plain: cache.playlist, content_type: "application/vnd.apple.mpegurl"
-  end
-
-  def hls_segment
-    cache = Hls::SegmentCache.new(@playable)
-    index = params[:index].to_i
-    path = cache.path(index)
-
-    Hls::SegmentLock.synchronize(@playable.id, index) do
-      unless cache.exist?(index)
-        result = Hls::GenerateSegmentService.call(@playable, index, path)
-
-        unless result.success
-          ApplicationLogger.error(RuntimeError.new(result.stderr), location: self.class.name)
-          return head :not_found
-        end
-      end
-    end
-
-    FileUtils.touch(path)
-    send_file path, type: "video/mp2t", disposition: "inline"
-  end
-
   private
 
   def set_playable
-    @playable = Playable.find_playable(params[:id], type: params[:type])
+    @playable = Library.find_playable(params[:id], type: params[:type])
   rescue ActiveRecord::RecordNotFound
     render json: { error: "playable not found" }, status: :not_found
   end

@@ -11,7 +11,7 @@ class Api::V1::LibraryController < ApplicationController
 
   def show
     item = Library.find_item(params[:id], type: params[:type])
-    render json: serialize(item)
+    render json: LibrarySerializer.new(item, params: { user: current_user, request: request }).as_json
   rescue ActiveRecord::RecordNotFound
     render status: :not_found
   end
@@ -21,16 +21,5 @@ class Api::V1::LibraryController < ApplicationController
     render status: :ok
   rescue StandardError => e
     render json: { error: "Failed to scan library: #{e.message}" }, status: :internal_server_error
-  end
-
-  private
-
-  def serialize(item)
-    case item
-    when Movie then MovieSerializer.new(item, params: { user: current_user, request: request }).as_json
-    when Episode then EpisodeSerializer.new(item, params: { user: current_user, request: request }).as_json
-    when Show then ShowSerializer.new(item, params: { request: request }).as_json
-    when Season then SeasonSerializer.new(item, params: { request: request }).as_json
-    end
   end
 end

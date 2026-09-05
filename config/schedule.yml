@@ -1,6 +1,6 @@
 hls_clean_cache_job:
   cron: "0 3 * * *"
-  class: "Hls::CleanSegmentCacheJob"
+  class: "Hls::CleanCacheJob"
   queue: "default"
   description: "Removes HLS segments not accessed in the last 24 hours."
   active_job: true
