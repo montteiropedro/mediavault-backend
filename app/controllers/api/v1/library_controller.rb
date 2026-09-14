@@ -17,8 +17,8 @@ class Api::V1::LibraryController < ApplicationController
   end
 
   def scan
-    LibraryScanJob.perform_later
-    render status: :ok
+    job = LibraryScanJob.perform_later
+    render json: { job_id: job.job_id }, status: :ok
   rescue StandardError => e
     render json: { error: "Failed to scan library: #{e.message}" }, status: :internal_server_error
   end
