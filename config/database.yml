@@ -22,7 +22,6 @@ default: &default
   username: <%= ENV["POSTGRES_USER"] %>
   password: <%= ENV["POSTGRES_PASSWORD"] %>
 
-
 development:
   <<: *default
   database: mediavault_backend_development
