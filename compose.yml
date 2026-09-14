@@ -4,9 +4,10 @@ x-app-env: &app-env
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
   POSTGRES_DB: ${POSTGRES_DB:-mediavault_backend_development}
   DB_HOST: ${DB_HOST:-db}
+  RAILS_MAX_THREADS: "${RAILS_MAX_THREADS:-10}"
 
 services:
-  app:
+  backend:
     container_name: mediavault-backend
     build:
       context: .
@@ -27,6 +28,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    networks:
+      default:
+      mediavault:
 
   db:
     container_name: mediavault-backend-db
@@ -72,3 +76,7 @@ services:
 
 volumes:
   postgres_data:
+
+networks:
+  mediavault:
+    external: true
