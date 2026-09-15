@@ -16,6 +16,10 @@ Rails.application.routes.draw do
 
   namespace :api do
     namespace :v1 do
+      resources :jobs, only: [] do
+        resource :progress, only: :show, controller: "jobs/progress"
+      end
+
       resource :session, only: [:create, :destroy]
       get "me", to: "users#me"
 

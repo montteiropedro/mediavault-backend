@@ -4,15 +4,15 @@ class ScanShowsService
   SUPPORTED_COVER_NAMES = %w[cover.jpg cover.jpeg cover.png].freeze
   SEASON_PATTERN = /\A(season|s)[\s_\-]?\d+\z/i
 
-  def self.call(shows_path = DEFAULT_SHOWS_PATH)
-    new(shows_path).call
+  def self.call(shows_path = DEFAULT_SHOWS_PATH, progress: nil)
+    new(shows_path).call(progress:)
   end
 
   def initialize(shows_path)
     @shows_path = shows_path
   end
 
-  def call
+  def call(progress:)
     Rails.logger.info("Starting shows scan in: #{@shows_path}...")
 
     unless Dir.exist?(@shows_path)
@@ -22,24 +22,30 @@ class ScanShowsService
 
     @existing_episode_paths = []
     @scanned_shows = 0
+    new_episodes = []
 
-    Dir.children(@shows_path).sort.each do |entry_name|
+    episode_queue = Dir.children(@shows_path).sort.flat_map do |entry_name|
       entry_path = File.join(@shows_path, entry_name)
-      next unless File.directory?(entry_path)
+      next [] unless File.directory?(entry_path)
 
       if show_dir?(entry_path)
-        process_show(entry_name, entry_path)
+        collect_show(entry_name, entry_path)
       else
-        # treated as a category folder (e.g. "animes"), where each child is a show
-        process_category(entry_name, entry_path)
+        collect_category(entry_path)
       end
     end
 
-    removed_count = cleanup_missing_episodes(@existing_episode_paths)
+    episode_queue.each_with_index do |(season, file_path), index|
+      @existing_episode_paths << file_path
+      episode = process_episode(season, file_path)
+      new_episodes << episode if episode
+      progress&.step(index + 1, episode_queue.size)
+    end
 
-    Rails.logger.info(
-      "Scan completed! Processed #{@scanned_shows} shows. Removed #{removed_count} missing episodes."
-    )
+    removed_count = cleanup_missing_episodes(@existing_episode_paths)
+    Rails.logger.info("Scan completed! Processed #{@scanned_shows} shows. Removed #{removed_count} missing episodes.")
+
+    new_episodes
   end
 
   private
@@ -57,19 +63,19 @@ class ScanShowsService
     name.match?(SEASON_PATTERN)
   end
 
-  def process_category(category_name, category_path)
-    Dir.children(category_path).sort.each do |show_name|
+  def collect_category(category_path)
+    Dir.children(category_path).sort.flat_map do |show_name|
       show_path = File.join(category_path, show_name)
-      next unless File.directory?(show_path)
+      next [] unless File.directory?(show_path)
 
-      process_show(show_name, show_path)
+      collect_show(show_name, show_path)
     end
   end
 
-  def process_show(name, path)
+  def collect_show(name, path)
     unless show_dir?(path)
       Rails.logger.info("Skipping #{path}: no season-like subdirectories found.")
-      return
+      return []
     end
 
     show = Show.find_or_initialize_by(source_path: path)
@@ -77,18 +83,17 @@ class ScanShowsService
     show.save!
 
     ShowMetadataService.call(show)
-
     @scanned_shows += 1
 
-    Dir.children(path).sort.each do |season_name|
+    Dir.children(path).sort.flat_map do |season_name|
       season_path = File.join(path, season_name)
-      next unless File.directory?(season_path) && season_like?(season_name)
+      next [] unless File.directory?(season_path) && season_like?(season_name)
 
-      process_season(show, season_name, season_path)
+      collect_season(show, season_name, season_path)
     end
   end
 
-  def process_season(show, season_name, season_path)
+  def collect_season(show, season_name, season_path)
     number = season_name[/\d+/]&.to_i || 0
 
     season = show.seasons.find_or_initialize_by(number: number)
@@ -96,13 +101,12 @@ class ScanShowsService
     season.source_path = season_path
     season.save!
 
-    Dir.children(season_path).sort.each do |file_name|
-      file_path = File.join(season_path, file_name)
-      next unless supported_file?(file_path)
-
-      @existing_episode_paths << file_path
-      process_episode(season, file_path)
-    end
+    Dir
+      .children(season_path)
+      .sort
+      .map { |file_name| File.join(season_path, file_name) }
+      .select { |file_path| supported_file?(file_path) }
+      .map { |file_path| [season, file_path] }
   end
 
   def process_episode(season, file_path)
@@ -121,9 +125,10 @@ class ScanShowsService
 
     if episode.save
       Rails.logger.info("Indexed new episode: #{show_title_for(season)} - #{clean_title}")
-      Playable::MetadataProcessingJob.perform_later(episode)
+      episode
     else
       Rails.logger.info("Failed to index #{file_path}: #{episode.errors.full_messages.join(', ')}")
+      nil
     end
   end
 
