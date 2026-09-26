@@ -38,37 +38,29 @@ class Hls::GenerateVideoSegmentService
   end
 
   def ffmpeg_command
-    if @playable.h264?
-      # Stream Copy (Fast)
-      [
-        "ffmpeg", "-y",
-        "-ss", start_time.to_s,
-        "-i", @playable.file_path.to_s,
-        "-t", duration.to_s,
-        "-map", "0:V:0",
-        "-c:v", "copy",
-        "-output_ts_offset", start_time.to_s,
-        "-muxdelay", "0",
-        "-f", "mpegts",
-        tmp_path
-      ]
-    else
-      # Transcode Ultrafast (More slow)
-      [
-        "ffmpeg", "-y",
-        "-ss", start_time.to_s,
-        "-i", @playable.file_path.to_s,
-        "-t", duration.to_s,
-        "-map", "0:V:0",
-        "-c:v", "libx264",
-        "-preset", "ultrafast",
-        "-tune", "zerolatency",
-        "-threads", "2",
-        "-output_ts_offset", start_time.to_s,
-        "-muxdelay", "0",
-        "-f", "mpegts",
-        tmp_path
-      ]
-    end
+    [
+      "ffmpeg", "-y",
+      "-ss", start_time.to_s,
+      "-i", @playable.file_path,
+      "-t", duration.to_s,
+      "-map", "0:V:0",
+      "-c:v", "libx264",
+      "-output_ts_offset", start_time.to_s,
+      "-muxdelay", "0",
+      "-f", "mpegts",
+      tmp_path
+    ]
+
+    # [
+    #   "ffmpeg", "-y",
+    #   "-ss", start_time.to_s,
+    #   "-i", @playable.file_path,
+    #   "-map", "0:V:0",
+    #   "-vf", "trim=start=0:duration=#{duration},setpts=PTS-STARTPTS+#{start_time}/TB",
+    #   "-c:v", "libx264",
+    #   "-f", "mpegts",
+    #   "-mpegts_copyts", "1",
+    #   tmp_path
+    # ]
   end
 end
