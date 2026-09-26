@@ -42,9 +42,6 @@ class Playable::MetadataService
     audio_streams = streams.select { |s| s["codec_type"] == "audio" }
     subtitle_streams = streams.select { |s| s["codec_type"] == "subtitle" }
 
-    main_video_stream = video_streams.find { |stream| !cover_stream?(stream) } || video_streams.first
-    @media.codec_name = main_video_stream["codec_name"]&.downcase if main_video_stream && @media.respond_to?(:codec_name=)
-
     @media.duration_seconds = format_info["duration"].to_f.round
     @media.title = format_info["tags"]["title"] if format_info.dig("tags", "title").present?
     @media.audio_tracks = format_streams(audio_streams).map(&:to_h)
