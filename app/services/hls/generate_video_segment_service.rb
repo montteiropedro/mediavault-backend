@@ -45,6 +45,7 @@ class Hls::GenerateVideoSegmentService
       "-t", duration.to_s,
       "-map", "0:V:0",
       "-c:v", "libx264",
+      "-preset", "veryfast",
       "-output_ts_offset", start_time.to_s,
       "-muxdelay", "0",
       "-f", "mpegts",
