@@ -58,8 +58,8 @@ RSpec.describe ScanShowsService do
         expect(episode.number).to eq(2)
       end
 
-      it "enqueues Playable::MetadataProcessingJob for each new episode" do
-        expect { call }.to have_enqueued_job(Playable::MetadataProcessingJob).twice
+      it "returns the newly indexed episodes" do
+        expect(call.map(&:file_path)).to contain_exactly(episode_1_path, episode_2_path)
       end
     end
 
@@ -108,9 +108,6 @@ RSpec.describe ScanShowsService do
         expect { call }.not_to change(Episode, :count)
       end
 
-      it "does not enqueue a new metadata job" do
-        expect { call }.not_to have_enqueued_job(Playable::MetadataProcessingJob)
-      end
     end
 
     context "when an episode no longer exists on disk" do
@@ -153,6 +150,14 @@ RSpec.describe ScanShowsService do
         expect(Season.exists?(season.id)).to be(true)
         expect(Show.exists?(show.id)).to be(true)
       end
+    end
+  end
+
+  describe "when the library directory does not exist" do
+    it "returns an empty array" do
+      result = described_class.call(File.join(@tmp_library_path, "missing"))
+
+      expect(result).to eq([])
     end
   end
 end
