@@ -15,7 +15,7 @@ class ScanMoviesService
 
     unless Dir.exist?(@movies_path)
       Rails.logger.info("Directory #{@movies_path} does not exist.")
-      return
+      return []
     end
 
     files = Dir.glob(File.join(@movies_path, "**", "*")).select { |file_path| supported_file?(file_path) }

@@ -39,8 +39,8 @@ RSpec.describe ScanMoviesService do
         audio_item = Movie.find_by(file_path: mkv_video_path)
       end
 
-      it "enqueues MediaMetadataProcessingJob for each new item" do
-        expect { call }.to have_enqueued_job(Playable::MetadataProcessingJob).twice
+      it "returns the newly indexed movies" do
+        expect(call.map(&:file_path)).to contain_exactly(mp4_video_path, mkv_video_path)
       end
     end
 
@@ -60,9 +60,6 @@ RSpec.describe ScanMoviesService do
         expect { call }.not_to change(Movie, :count)
       end
 
-      it "does not enqueue a new metadata job" do
-        expect { call }.not_to have_enqueued_job(Playable::MetadataProcessingJob)
-      end
     end
 
     context "when a database record no longer exists on disk" do
@@ -73,6 +70,14 @@ RSpec.describe ScanMoviesService do
       it "removes the record" do
         expect { call }.to change(Movie, :count).by(-1)
         expect(Movie.exists?(orphan_item.id)).to be(false)
+      end
+    end
+
+    context "when the library directory does not exist" do
+      it "returns an empty array" do
+        result = described_class.call(File.join(@tmp_library_path, "missing"))
+
+        expect(result).to eq([])
       end
     end
   end

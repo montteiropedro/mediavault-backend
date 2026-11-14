@@ -17,7 +17,7 @@ class ScanShowsService
 
     unless Dir.exist?(@shows_path)
       Rails.logger.info("Directory #{@shows_path} does not exist.")
-      return
+      return []
     end
 
     @existing_episode_paths = []
