@@ -21,6 +21,7 @@ RSpec.describe Hls::GenerateVideoSegmentService do
           "-t", "6",
           "-map", "0:V:0",
           "-c:v", "libx264",
+          "-preset", "veryfast",
           "-output_ts_offset", "12",
           "-muxdelay", "0",
           "-f", "mpegts",
