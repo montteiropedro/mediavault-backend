@@ -16,6 +16,7 @@
 
 ## Pull requests
 
+- Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages and pull request titles. Use the format `type(scope): description` (scope is optional), with a lowercase type such as `feat`, `fix`, `docs`, `refactor`, `test`, or `chore`.
 - Base every pull request description on `.github/pull_request_template.md`.
 - Write every pull request title and description in English.
 - Preserve the template's sections when preparing a pull request description.
