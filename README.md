@@ -18,19 +18,20 @@ Screenshots or a short demo video help visitors understand the complete applicat
 
 ## Tech stack
 
-| Area                             | Technology                    |
-| -------------------------------- | ----------------------------- |
-| Language                         | Ruby 4.0.6                    |
-| Framework                        | Ruby on Rails 8.1 API mode    |
-| Database                         | PostgreSQL 15                 |
-| Background jobs and queue        | Sidekiq with Redis            |
-| Media inspection and transcoding | FFprobe and FFmpeg            |
-| Containerized development        | Docker Compose                |
-| Tests                            | RSpec                         |
+| Area                             | Technology                 |
+| -------------------------------- | -------------------------- |
+| Language                         | Ruby 4.0.6                 |
+| Framework                        | Ruby on Rails 8.1 API mode |
+| Database                         | PostgreSQL 15              |
+| Background jobs and queue        | Sidekiq with Redis         |
+| Media inspection and transcoding | FFprobe and FFmpeg         |
+| Containerized development        | Docker Compose             |
+| Tests                            | RSpec                      |
 
 ## Requirements
 
 - Docker (Docker Engine and the Docker Compose plugin).
+- GNU Make, if you want to use the shortcuts in the Makefile.
 - The [MediaVault frontend](https://github.com/montteiropedro/mediavault-frontend) repository, if you want to run the complete application.
 - Local directories containing your media files.
 
@@ -49,25 +50,45 @@ The development Compose file builds the backend and Sidekiq worker from `Dockerf
 4. Create the shared Docker network if it does not already exist:
 
    ```sh
-   docker network create mediavault
+   make network
    ```
 
 5. Start the backend services:
 
    ```sh
-   docker compose up --build
+   make up-build
    ```
 
 6. In another terminal, prepare the database and seed the initial user:
 
    ```sh
-   docker compose exec backend bundle exec rails db:prepare
-   docker compose exec backend bundle exec rails db:seed
+   make db-init
    ```
 
 The API is available at `http://localhost:3000` by default, and its health check is at `http://localhost:3000/up`. The seed command creates the `home` user, prints its generated token once, and enqueues an initial library scan. Keep that token private; use the username and token to sign in through the frontend.
 
-To stop the services, run `docker compose down`. This preserves the PostgreSQL data volume. **Add `-v` only if you intend to delete that data**.
+To stop the services, run `make down`. This preserves the PostgreSQL data volume. Use `make down-volumes` only if you intend to delete that data.
+
+## Make commands
+
+Run `make` or `make help` to list the available shortcuts:
+
+| Command                                                 | Description                                                                                                                              |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `make up`                                               | Start the services in the background using existing images.                                                                              |
+| `make up-build`                                         | Build images if needed and start the services in the background. Use this for the first startup or after changing the image build setup. |
+| `make build`                                            | Build the application images without starting services.                                                                                  |
+| `make down`                                             | Stop and remove containers while keeping database data.                                                                                  |
+| `make down-volumes`                                     | Stop and remove containers and volumes, including PostgreSQL data.                                                                       |
+| `make network`                                          | Create the shared `mediavault` Docker network if it does not exist.                                                                      |
+| `make db-init`                                          | Prepare the database and seed the initial user. Start services first; seeding prints the user's token and queues a library scan.         |
+| `make logs`                                             | Follow logs from all services.                                                                                                           |
+| `make logs-backend`                                     | Follow logs from one service. Replace `backend` with `db`, `redis`, or `sidekiq` as needed.                                              |
+| `make rspec`                                            | Run the full RSpec suite in the backend container.                                                                                       |
+| `make rspec SPEC=spec/requests/api/v1/sessions_spec.rb` | Run one spec file.                                                                                                                       |
+| `make ps`                                               | Show service status.                                                                                                                     |
+
+These shortcuts wrap Docker Compose commands. You can also run the corresponding `docker compose` commands directly.
 
 ## Media folder layout
 
@@ -131,13 +152,13 @@ Authentication accepts the session cookie or a bearer token in the `Authorizatio
 Run the test suite in the backend container:
 
 ```sh
-docker compose exec backend bundle exec rspec
+make rspec
 ```
 
 To run one spec file:
 
 ```sh
-docker compose exec backend bundle exec rspec spec/requests/api/v1/sessions_spec.rb
+make rspec SPEC=spec/requests/api/v1/sessions_spec.rb
 ```
 
 ## Project structure
